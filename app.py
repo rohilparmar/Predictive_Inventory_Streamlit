@@ -4,14 +4,12 @@ import numpy as np
 import joblib
 import datetime
 import plotly.graph_objects as go
-from streamlit_lottie import st_lottie
-import requests
 import time
 
 # 1. Advanced Page Config
 st.set_page_config(page_title="RetailAI Enterprise | Rohil", layout="wide", page_icon="🛰️")
 
-# 2. Ultra-Modern CSS
+# 2. Ultra-Modern CSS (Custom UI for Alerts)
 st.markdown("""
     <style>
     .stApp { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -25,12 +23,21 @@ st.markdown("""
         transition: 0.4s ease;
         margin-bottom: 20px;
     }
-    .glass-card:hover {
-        border-color: #38bdf8;
-        box-shadow: 0 0 30px rgba(56, 189, 248, 0.15);
-        transform: translateY(-3px);
-    }
     
+    /* Notification Boxes */
+    .alert-box {
+        background: rgba(56, 189, 248, 0.1);
+        border-left: 5px solid #38bdf8;
+        padding: 15px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+    .alert-high { 
+        border-left-color: #f87171; 
+        background: rgba(248, 113, 113, 0.1); 
+    }
+
     /* Hero Text */
     .hero-text {
         font-size: 55px; font-weight: 900;
@@ -44,6 +51,26 @@ st.markdown("""
     .metric-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
     </style>
     """, unsafe_allow_html=True)
+
+# --- AI LOGIC: Seasonality & Festival Detection ---
+def get_market_alerts():
+    today = datetime.datetime.now()
+    alerts = []
+    
+    # 1. Summer Logic (Ahmedabad Node)
+    if today.month in [3, 4, 5, 6]:
+        alerts.append({"type": "info", "msg": "☀️ **SUMMER PEAK:** High demand for cotton fabrics and cooling products detected in Ahmedabad region."})
+    
+    # 2. Diwali Prediction (Assuming Nov 1st)
+    diwali_date = datetime.datetime(today.year, 11, 1)
+    days_to_diwali = (diwali_date - today).days
+    if 0 < days_to_diwali <= 200: # Keeping it active for now
+        alerts.append({"type": "high", "msg": f"🚨 **DIWALI PRE-STOCK:** Festival in {days_to_diwali} days. Strategy: Increase ethnic wear stock by 45% soon."})
+    
+    # 3. Google Trends Mock-up
+    alerts.append({"type": "info", "msg": "🔍 **MARKET TREND:** Searches for 'Eco-friendly packaging' increased by 12% on Google this week."})
+    
+    return alerts
 
 # 3. Sidebar - Control Center
 with st.sidebar:
@@ -84,10 +111,20 @@ if page == "🏠 Core Dashboard":
     with m4:
         st.markdown('<div class="glass-card"><p class="metric-label">System Uptime</p><p class="metric-val">99.9%</p></div>', unsafe_allow_html=True)
     
-    st.markdown("### 📈 Network Performance")
-    # Placeholder chart for Dashboard
-    chart_data = pd.DataFrame(np.random.randn(20, 3), columns=['Store A', 'Store B', 'Store C'])
-    st.area_chart(chart_data)
+    # --- NEW LAYOUT: Split Charts and Alerts ---
+    col_chart, col_alerts = st.columns([2, 1])
+    
+    with col_chart:
+        st.markdown("### 📈 Network Performance")
+        chart_data = pd.DataFrame(np.random.randn(20, 3), columns=['Store A', 'Store B', 'Store C'])
+        st.area_chart(chart_data)
+        
+    with col_alerts:
+        st.markdown("### 🔔 AI Smart Alerts")
+        alerts = get_market_alerts()
+        for a in alerts:
+            div_class = "alert-box alert-high" if a['type'] == "high" else "alert-box"
+            st.markdown(f'<div class="{div_class}">{a["msg"]}</div>', unsafe_allow_html=True)
 
 # --- PAGE 2: AI PREDICTION HUB ---
 elif page == "🔮 AI Prediction Hub":
@@ -106,10 +143,9 @@ elif page == "🔮 AI Prediction Hub":
                 try:
                     model = joblib.load('inventory_model.joblib')
                     now = datetime.datetime.now()
-                    # Fixed formatting for prediction
                     pred = round(float(model.predict([[st_id, it_id, now.month, now.weekday(), y_val]])[0]), 2)
                     st.session_state['current_pred'] = pred
-                except: st.error("Model File Not Found!")
+                except: st.error("Model File Not Found! Upload 'inventory_model.joblib' to GitHub.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_r:
@@ -124,7 +160,7 @@ elif page == "🔮 AI Prediction Hub":
             fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font=dict(color="white"), height=250, margin=dict(t=0, b=0))
             st.plotly_chart(fig, use_container_width=True)
 
-# --- PAGE 3: BULK ANALYTICS ---
+# --- PAGE 3: ENTERPRISE BULK ---
 elif page == "📂 Enterprise Bulk":
     st.subheader("Batch Data Processing")
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
